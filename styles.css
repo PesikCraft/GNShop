@@ -529,3 +529,93 @@ select option{ color: var(--ink); background: var(--panel); }
 }
 
 #pContinue { display: none !important; }
+
+/* ===== Мобилка: фикс общей раскладки ===== */
+
+/* Диалог не должен выходить за экран, внутри — скролл */
+.modal-card{
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+}
+
+/* Шапка: на узких экранах переносим поиск ниже логотипа */
+@media (max-width: 720px){
+  .site-header{ flex-wrap: wrap; gap: 8px; }
+  .search{ flex-basis: 100%; }
+}
+
+/* Основная сетка: сайдбар сверху, затем контент */
+@media (max-width: 900px){
+  .layout{ grid-template-columns: 1fr; }
+  .sidebar{
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    min-height: auto;
+  }
+}
+
+/* Категории на телефоне — в одну строку с прокруткой (чипы) */
+@media (max-width: 900px){
+  .cats{
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .cats li{ min-width: max-content; }
+}
+
+/* Сетка товаров уже адаптивна, но чуть увеличим «плитку» на узких */
+@media (max-width: 620px){
+  .card .body{ gap: 10px; }
+  .opts{ gap: 6px; }
+}
+
+/* ===== Модалка товара (показ на весь экран) — мобильная версия ===== */
+/* если ты добавлял модалку товара с гридом .pdp-grid — вот её адаптация */
+.pdp-grid{
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+}
+.pdp-img img, .pdp-img svg{
+  width: 100%;
+  height: auto;
+  max-height: 72vh;        /* чтобы картинка не упиралась в низ */
+  object-fit: contain;
+}
+
+/* На телефоне делаем колонку: картинка сверху, параметры — ниже */
+@media (max-width: 900px){
+  .pdp-grid{ grid-template-columns: 1fr; }
+  .pdp-img{ order: 1; }
+  .pdp-info{ order: 2; }
+}
+
+/* Кнопки-«чипсы» для размера/цвета — большие тач-таргеты */
+.opt-chip{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width: 44px; min-height: 36px;
+  padding: 6px 10px; border:1px solid var(--line);
+  border-radius:10px; background:var(--soft); cursor:pointer;
+}
+.opt-chip.active{
+  background: var(--soft-active);
+  border-color:#bdd0ff;
+  box-shadow:0 0 0 2px #bdd0ff;
+}
+
+/* Кнопки в ряд — на телефоне тянем на всю ширину */
+@media (max-width: 720px){
+  .pdp-actions{ display:grid; grid-template-columns: 1fr; gap:8px; }
+  .btn{ padding:12px; }
+}
+
+/* Диалоги на очень узких экранах — ширина во всю вьюпорт */
+@media (max-width: 480px){
+  .modal-card, .modal-card.wide{ width: 96vw; border-radius: 12px; }
+}
+
+/* Подстрахуем любые переполнения */
+img, svg{ max-width:100%; height:auto; }
+html, body{ overflow-x:hidden; }
