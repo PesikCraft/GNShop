@@ -15,7 +15,7 @@ const LS = {
 
 /* ===== Константы / демо ===== */
 const DEFAULT_ADMIN = { nick: "admin", pass: "admin123" };
-const BANK = { card: "5536 12** **** 1234", name: "DemoBank", currency: "֏" };
+const BANK = { card: "4355 0539 2618 2967", name: "DemoBank", currency: "֏" };
 
 const DEFAULT_PRODUCTS = [
   { id:"t1", title:"Майка Sky",  price:9900,  cat:"Футболки",
@@ -537,7 +537,7 @@ function openPayment(order){
   $("#markPaid").onclick = (e)=>{ e.preventDefault(); startPaymentCheck(order.id, order.total); };
 }
 function startPaymentCheck(orderId, amount){
-  toast("Проверяем поступление перевода… (демо)","info");
+  toast("Проверяем поступление перевода. Подождите пару минут!","info");
   if (paymentWatch[orderId]) clearInterval(paymentWatch[orderId]);
   let tries = 0;
   paymentWatch[orderId] = setInterval(()=>{
