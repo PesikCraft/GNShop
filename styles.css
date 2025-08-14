@@ -619,3 +619,84 @@ select option{ color: var(--ink); background: var(--panel); }
 /* Подстрахуем любые переполнения */
 img, svg{ max-width:100%; height:auto; }
 html, body{ overflow-x:hidden; }
+
+/* === 2.2.1 Общие ограничения, чтобы ничего не вываливалось === */
+html, body{ overflow-x:hidden; }
+.modal-card{
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+}
+
+/* Обёртка для таблиц админки — горизонтальный скролл внутри блока, а не всей страницы */
+.table-wrap{ overflow:auto; max-width:100%; }
+.table-wrap .orders,        /* таблица заказов */
+.table-wrap #prodTable{ min-width: 760px; }  /* не ломаем колонки */
+
+/* Админ-грид: одна колонка на телефоне */
+@media (max-width:980px){
+  .admin-grid{ grid-template-columns: 1fr !important; }
+}
+
+/* === 2.2.2 Корзина: перестраиваем строки в компактную карточку на телефоне === */
+@media (max-width: 700px){
+  .cart-item{
+    grid-template-columns: 64px 1fr;
+    grid-template-areas:
+      "img info"
+      "price qty"
+      "remove qty";
+    align-items: start;
+  }
+  .cart-item .ph{ grid-area: img; }
+  .cart-item > div:nth-child(2){ grid-area: info; }   /* блок с title + muted */
+  .cart-item > div:nth-child(3){ grid-area: price; font-weight: 700; } /* цена */
+  .cart-item .qty{ grid-area: qty; justify-self: end; }
+  .cart-item .remove{ grid-area: remove; justify-self: start; }
+  .qty input{ width: 72px; }
+  .cart-summary{ position: sticky; bottom: 0; } /* чтобы сумма всегда под рукой */
+}
+
+/* Чтобы левая/правая панель в модалке не выезжали за пределы на узких */
+@media (max-width: 900px){
+  .modal-body.split{ grid-template-columns: 1fr; }
+}
+
+/* === 2.2.3 Модалка товара (если используешь детальную карточку) === */
+.pdp-grid{
+  display: grid; gap: 16px;
+  grid-template-columns: 1.2fr 1fr;
+}
+.pdp-img img, .pdp-img svg{
+  width:100%; height:auto; max-height:72vh; object-fit:contain;
+}
+@media (max-width: 900px){
+  .pdp-grid{ grid-template-columns: 1fr; }
+  .pdp-img{ order: 1; }
+  .pdp-info{ order: 2; }
+}
+.pdp-actions{ display:flex; gap:10px; flex-wrap:wrap }
+@media (max-width: 720px){
+  .pdp-actions{ display:grid; grid-template-columns: 1fr; }
+}
+
+/* Чипсы для размеров/цветов (тач-удобные) */
+.opt-chip{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:44px; min-height:36px; padding:6px 10px;
+  border:1px solid var(--line); border-radius:10px;
+  background:var(--soft); cursor:pointer;
+}
+.opt-chip.active{
+  background:var(--soft-active);
+  border-color:#bdd0ff;
+  box-shadow:0 0 0 2px #bdd0ff;
+}
+
+/* Грид плиток: сам подбирает колонки по ширине карточки */
+.grid{ display:grid; gap:16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+/* Ограничим визуальную «крышку» изображения, чтобы плитки были ниже */
+.card .img{ max-height: 260px; }
+@media (max-width: 480px){
+  .card .img{ max-height: 200px; }
+}
