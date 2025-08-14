@@ -63,7 +63,7 @@
   </main>
 
   <footer class="site-footer">
-    <div>© G&N Shop - магазин одежды</div>
+    <div>© Майки — демо-магазин</div>
     <div class="small">Оплата имитируется, заказы и каталог хранятся локально в браузере.</div>
   </footer>
 
@@ -212,6 +212,8 @@
           <h3 style="display:flex;justify-content:space-between;align-items:center">
             <span>Каталог</span>
             <button id="exportCatalogBtn" class="btn btn-ghost small">Экспорт JSON</button>
+            <button id="importCatalogBtn" class="btn">Импорт</button>
+<input id="importCatalogFile" type="file" accept="application/json" hidden>
           </h3>
           <table class="orders" id="prodTable">
             <thead>
