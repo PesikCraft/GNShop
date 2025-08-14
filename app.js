@@ -15,7 +15,7 @@ const LS = {
 
 /* ===== Константы / демо ===== */
 const DEFAULT_ADMIN = { nick: "admin", pass: "admin123" };
-const BANK = { card: "4355 0539 2618 2967", name: "DemoBank", currency: "֏" };
+const BANK = { card: "5536 12** **** 1234", name: "DemoBank", currency: "֏" };
 
 const DEFAULT_PRODUCTS = [
   { id:"t1", title:"Майка Sky",  price:9900,  cat:"Футболки",
@@ -537,7 +537,7 @@ function openPayment(order){
   $("#markPaid").onclick = (e)=>{ e.preventDefault(); startPaymentCheck(order.id, order.total); };
 }
 function startPaymentCheck(orderId, amount){
-  toast("Проверяем поступление перевода. Подождите пару минут!","info");
+  toast("Проверяем поступление перевода… (демо)","info");
   if (paymentWatch[orderId]) clearInterval(paymentWatch[orderId]);
   let tries = 0;
   paymentWatch[orderId] = setInterval(()=>{
@@ -874,6 +874,42 @@ function exportCatalog(){
   setTimeout(()=> URL.revokeObjectURL(url), 1000);
   toast("Экспорт выполнен","success");
 }
+// ==== Импорт каталога из JSON ====
+function importCatalogFile(file){
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const data = JSON.parse(r.result);
+      if (data && Array.isArray(data.products)){
+        // нормализуем SVG, сохраняем
+        const P = data.products.map(p => p.svg ? {...p, svg: normalizeSvgMarkup(p.svg)} : p);
+        store.setCatalog(P);
+      }
+      if (data && Array.isArray(data.cats)) store.setCats(data.cats);
+      toast("Импорт выполнен","success");
+      renderAdminProducts(); renderCats(); renderGrid();
+    }catch(e){
+      toast("Неверный файл импорта","error");
+    }
+  };
+  r.readAsText(file);
+}
+
+const ex = $("#exportCatalogBtn");
+if (ex) ex.onclick = exportCatalog;
+
+const impBtn  = $("#importCatalogBtn");
+const impFile = $("#importCatalogFile");
+if (impBtn && impFile){
+  impBtn.onclick = () => impFile.click();
+  impFile.onchange = (e)=>{
+    const f = e.target.files?.[0];
+    if (f) importCatalogFile(f);
+    e.target.value = ""; // чтобы можно было выбрать тот же файл повторно
+  };
+}
+
+
 
 /* ===== Сброс демо ===== */
 function resetDemo(){
@@ -1031,3 +1067,17 @@ function main(){
   ensureProductModal();
 }
 document.addEventListener("DOMContentLoaded", main);
+
+// Оборачиваем таблицы в прокручиваемый контейнер на узких экранах
+(function wrapAdminTables(){
+  const wrap = (el)=>{
+    if (!el || el.parentElement?.classList.contains("table-wrap")) return;
+    const w = document.createElement("div");
+    w.className = "table-wrap";
+    el.parentNode.insertBefore(w, el);
+    w.appendChild(el);
+  };
+  wrap(document.querySelector(".orders"));      // таблица заказов
+  wrap(document.getElementById("prodTable"));   // таблица каталога
+})();
+
