@@ -1,3 +1,60 @@
+// --- Firebase (вставить В САМЫЙ ВЕРХ app.js) ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+// Твой конфиг
+const firebaseConfig = {
+  apiKey: "AIzaSyB2XmKTuCwCK3rRq-QE4190qsYH13Tw6CI",
+  authDomain: "gnshop-9c0f7.firebaseapp.com",
+  projectId: "gnshop-9c0f7",
+  storageBucket: "gnshop-9c0f7.firebasestorage.app", // ок; можно также "gnshop-9c0f7.appspot.com"
+  messagingSenderId: "33739103897",
+  appId: "1:33739103897:web:df8c3ace5ca2940007a208",
+  measurementId: "G-2FE4XS2TXL"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+// Загрузка данных из Firestore и подстановка в текущий магазин
+async function loadRemoteData() {
+  // products
+  const snap = await getDocs(collection(db, "products"));
+  const products = [];
+  snap.forEach(d => {
+    const x = d.data();
+    products.push({
+      id: d.id,
+      title: x.title || "",
+      price: Number(x.price || 0),
+      cat: x.cat || "",
+      sizes: Array.isArray(x.sizes) ? x.sizes : [],
+      colors: Array.isArray(x.colors) ? x.colors : (Array.isArray(x.color) ? x.color : []),
+      svg: x.svg || "",
+      img: x.img || ""
+    });
+  });
+  // если категорий нет отдельным документом — соберём из товаров
+  let cats = [];
+  try {
+    const cdoc = await getDoc(doc(db, "cats", "categories"));
+    cats = cdoc.exists() ? Object.values(cdoc.data()) : Array.from(new Set(products.map(p => p.cat))).filter(Boolean);
+  } catch (_) {
+    cats = Array.from(new Set(products.map(p => p.cat))).filter(Boolean);
+  }
+
+  // кладём в твоё локальное хранилище и перерисовываем UI
+  store.setCatalog(products);
+  store.setCats(cats);
+  renderCats();
+  renderGrid();
+  console.log("Firestore → загружено:", { products: products.length, cats });
+}
+// --- конец вставки ---
+
+
 /* ===== Ключи хранилища ===== */
 const LS = {
   users: "shop_users",
@@ -15,7 +72,7 @@ const LS = {
 
 /* ===== Константы / демо ===== */
 const DEFAULT_ADMIN = { nick: "admin", pass: "admin123" };
-const BANK = { card: "5536 12** **** 1234", name: "DemoBank", currency: "֏" };
+const BANK = { card: "4355 0539 2618 2967", name: "DemoBank", currency: "֏" };
 
 const DEFAULT_PRODUCTS = [
   { id:"t1", title:"Майка Sky",  price:9900,  cat:"Футболки",
@@ -537,7 +594,7 @@ function openPayment(order){
   $("#markPaid").onclick = (e)=>{ e.preventDefault(); startPaymentCheck(order.id, order.total); };
 }
 function startPaymentCheck(orderId, amount){
-  toast("Проверяем поступление перевода… (демо)","info");
+  toast("Проверяем поступление перевода… Подождите пожалуйста!","info");
   if (paymentWatch[orderId]) clearInterval(paymentWatch[orderId]);
   let tries = 0;
   paymentWatch[orderId] = setInterval(()=>{
@@ -1067,6 +1124,17 @@ function main(){
   ensureProductModal();
 }
 document.addEventListener("DOMContentLoaded", main);
+
+function main(){
+  healAndInit();                      // локальные дефолты (на всякий случай)
+  applyTheme(getThemeForNick(currentUser()?.nick || null));
+  setWelcome(); renderCats(); renderGrid();
+  bindUI(); updateCartBadge(); route();
+
+  // ⬇️ Подтягиваем реальные данные из Firestore и заменяем локальный каталог
+  loadRemoteData().catch(err => console.error("Firestore load error:", err));
+}
+
 
 // Оборачиваем таблицы в прокручиваемый контейнер на узких экранах
 (function wrapAdminTables(){
