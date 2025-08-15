@@ -1,59 +1,59 @@
-// --- Firebase (вставить В САМЫЙ ВЕРХ app.js) ---
+// ======================= Firebase (ES Modules через CDN) =======================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {
-  getFirestore, collection, getDocs, doc, getDoc
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
 
-// Твой конфиг
 const firebaseConfig = {
   apiKey: "AIzaSyB2XmKTuCwCK3rRq-QE4190qsYH13Tw6CI",
   authDomain: "gnshop-9c0f7.firebaseapp.com",
   projectId: "gnshop-9c0f7",
-  storageBucket: "gnshop-9c0f7.firebasestorage.app", // ок; можно также "gnshop-9c0f7.appspot.com"
+  storageBucket: "gnshop-9c0f7.firebasestorage.app",
   messagingSenderId: "33739103897",
   appId: "1:33739103897:web:df8c3ace5ca2940007a208",
   measurementId: "G-2FE4XS2TXL"
 };
 
-const fbApp = initializeApp(firebaseConfig);
-const db = getFirestore(fbApp);
+const appFB = initializeApp(firebaseConfig);
+const db = getFirestore(appFB);
+getAnalytics(appFB);
 
-// Загрузка данных из Firestore и подстановка в текущий магазин
-async function loadRemoteData() {
-  // products
-  const snap = await getDocs(collection(db, "products"));
-  const products = [];
-  snap.forEach(d => {
-    const x = d.data();
-    products.push({
-      id: d.id,
-      title: x.title || "",
-      price: Number(x.price || 0),
-      cat: x.cat || "",
-      sizes: Array.isArray(x.sizes) ? x.sizes : [],
-      colors: Array.isArray(x.colors) ? x.colors : (Array.isArray(x.color) ? x.color : []),
-      svg: x.svg || "",
-      img: x.img || ""
+const CLOUD = { loaded:false };
+
+// Firestore → localStorage (cats / products)
+async function loadRemoteData(){
+  // 1) Категории из /cats/categories (object: {hoodie:"Худи", ...})
+  try{
+    const catSnap = await getDoc(doc(db, "cats", "categories"));
+    if (catSnap.exists()){
+      const obj  = catSnap.data() || {};
+      const cats = Object.values(obj).filter(Boolean);
+      if (cats.length) store.setCats(cats);
+    }
+  }catch(e){ console.warn("cats load error:", e); }
+
+  // 2) Товары из /products (каждый документ — товар)
+  try{
+    const q  = await getDocs(collection(db, "products"));
+    const products = q.docs.map(d => {
+      const p = d.data() || {};
+      return {
+        id:      p.id || d.id,
+        title:   p.title || "",
+        cat:     p.cat   || "",
+        price:   Number(p.price) || 0,
+        sizes:   Array.isArray(p.sizes) ? p.sizes : [],
+        colors:  Array.isArray(p.colors)? p.colors: [],
+        img:     p.img || p.image || "",
+        svg:     p.svg || ""
+      };
     });
-  });
-  // если категорий нет отдельным документом — соберём из товаров
-  let cats = [];
-  try {
-    const cdoc = await getDoc(doc(db, "cats", "categories"));
-    cats = cdoc.exists() ? Object.values(cdoc.data()) : Array.from(new Set(products.map(p => p.cat))).filter(Boolean);
-  } catch (_) {
-    cats = Array.from(new Set(products.map(p => p.cat))).filter(Boolean);
-  }
+    if (products.length) store.setCatalog(products);
+  }catch(e){ console.warn("products load error:", e); }
 
-  // кладём в твоё локальное хранилище и перерисовываем UI
-  store.setCatalog(products);
-  store.setCats(cats);
-  renderCats();
-  renderGrid();
-  console.log("Firestore → загружено:", { products: products.length, cats });
+  CLOUD.loaded = true;
 }
-// --- конец вставки ---
 
+// ============================ Локальная логика магазина =========================
 
 /* ===== Ключи хранилища ===== */
 const LS = {
@@ -103,7 +103,7 @@ const uid = () => Math.random().toString(36).slice(2,10);
 const esc = s => (s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
 function safeParse(str, fallback){ try{ const v = JSON.parse(str); return v ?? fallback; }catch(_){ return fallback; } }
 
-/* ===== Toasts (alert → тост) + баннер в модалке ===== */
+/* ===== Toasts + баннер над модалкой ===== */
 (function(){
   function ensureWrap(){
     let wrap = document.getElementById('toastWrap');
@@ -117,7 +117,7 @@ function safeParse(str, fallback){ try{ const v = JSON.parse(str); return v ?? f
     return wrap;
   }
 
-  // Плавающая плашка ошибки над модалкой (≈25px выше)
+  // Плавающая плашка-ошибка над модалкой
   window.showModalBanner = function(dlgSelector, msg, type='error', timeout=6000){
     const dlg = document.querySelector(dlgSelector);
     if(!dlg) return;
@@ -136,7 +136,7 @@ function safeParse(str, fallback){ try{ const v = JSON.parse(str); return v ?? f
     if (timeout) setTimeout(close, timeout);
   };
 
-  // Обычные тосты
+  // Тосты
   window.toast = function(text, type='info', timeout=3200){
     const wrap = ensureWrap();
     const el = document.createElement('div');
@@ -175,7 +175,7 @@ const store = {
   setCats(x){ localStorage.setItem(LS.cats, JSON.stringify(x)); }
 };
 
-/* ===== Нормализация SVG (чтобы влезало в слот) ===== */
+/* ===== Нормализация SVG ===== */
 function normalizeSvgMarkup(s){
   if (!s) return s;
   s = s.replace(/<svg([^>]*)\swidth="[^"]*"([^>]*)>/i, '<svg$1$2>');
@@ -185,7 +185,7 @@ function normalizeSvgMarkup(s){
   return s;
 }
 
-/* ===== Инициализация данных ===== */
+/* ===== Инициализация данных (админ + каталог + категории) ===== */
 function healAndInit(){
   // Users + admin
   let users = store.getUsers();
@@ -312,7 +312,7 @@ function renderGrid(){
 
   // обработчики карточек
   $$("#grid .card").forEach(card=>{
-    // добавить в корзину (с карточки)
+    // добавить в корзину
     card.querySelector(".add").onclick = ()=>{
       const id = card.dataset.id;
       const size = card.querySelector(".opt-size")?.value || "";
@@ -322,7 +322,7 @@ function renderGrid(){
       const dot = $("#cartCount"); dot.classList.remove("bump"); void dot.offsetWidth; dot.classList.add("bump");
     };
 
-    // открыть полноэкранную карточку товара (клик по картинке или заголовку)
+    // открыть полноэкранную карточку
     const id = card.dataset.id;
     card.querySelector(".img")?.addEventListener("click", ()=> openProduct(id));
     card.querySelector("h3")?.addEventListener("click",  ()=> openProduct(id));
@@ -364,7 +364,7 @@ function renderGrid(){
   });
 }
 
-/* ===== Полноэкранная карточка товара (новое) ===== */
+/* ===== Полноэкранная карточка товара ===== */
 function ensureProductModalStyles(){
   if (document.getElementById("productModalStyles")) return;
   const css = document.createElement("style");
@@ -440,7 +440,6 @@ function ensureProductModal(){
   document.body.appendChild(dlg);
   dlg.querySelector("#pClose").onclick = ()=> dlg.close();
 }
-
 function openProduct(id){
   ensureProductModalStyles();
   ensureProductModal();
@@ -455,21 +454,21 @@ function openProduct(id){
   dlg.querySelector(".p-img").innerHTML = productImageHTML(p);
   dlg.querySelector(".p-price").textContent = fmt(p.price);
 
-  // размеры — чипы
+  // размеры
   const sizes = p.sizes || [];
   const sizeWrap = dlg.querySelector("#pSizes");
   const rowSizes = dlg.querySelector("#rowSizes");
   sizeWrap.innerHTML = sizes.map(s=>`<button class="chip" data-val="${esc(s)}">${esc(s)}</button>`).join("");
   rowSizes.hidden = sizes.length === 0;
 
-  // цвета — чипы
+  // цвета
   const colors = p.colors || [];
   const colorWrap = dlg.querySelector("#pColors");
   const rowColors = dlg.querySelector("#rowColors");
   colorWrap.innerHTML = colors.map(c=>`<button class="chip" data-val="${esc(c)}">${esc(c)}</button>`).join("");
   rowColors.hidden = colors.length === 0;
 
-  // по умолчанию выбрать первый
+  // выбрать первые
   sizeWrap.querySelector(".chip")?.classList.add("active");
   colorWrap.querySelector(".chip")?.classList.add("active");
 
@@ -485,7 +484,7 @@ function openProduct(id){
   dlg.querySelector(".qty-inc").onclick = ()=> qtyInp.value = Math.max(1, (parseInt(qtyInp.value)||1)+1);
   dlg.querySelector(".qty-dec").onclick = ()=> qtyInp.value = Math.max(1, (parseInt(qtyInp.value)||1)-1);
 
-  // действия
+  // действие
   dlg.querySelector("#pAdd").onclick = ()=>{
     const size  = sizeWrap.querySelector(".chip.active")?.dataset.val || "";
     const color = colorWrap.querySelector(".chip.active")?.dataset.val || "";
@@ -680,7 +679,7 @@ function openMyOrders(){
   $("#myOrdersModal").showModal();
 }
 
-/* ===== Админка (сокращённо — без изменений логики) ===== */
+/* ===== Админка ===== */
 function renderAdmin(){
   $$(".adm-tab").forEach(btn=>{
     btn.onclick = ()=>{
@@ -808,7 +807,7 @@ function loadProductToForm(id){
   renderCatSelect();
   if (p.cat) $("#prodCatSel").value = p.cat;
 
-  $("#prodSizes").value = (p.sizes||[]).join(", ");
+  $("#prodSizes").value  = (p.sizes||[]).join(", ");
   $("#prodColors").value = (p.colors||[]).join(", ");
   $("#prodSvg").value = p.svg || "";
   $("#prodImg").value = "";
@@ -919,7 +918,7 @@ function renderAdminCats(){
   }
 }
 
-/* ===== Экспорт каталога ===== */
+/* ===== Экспорт / Импорт каталога ===== */
 function exportCatalog(){
   const data = { cats: store.getCats(), products: store.getCatalog() };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
@@ -931,14 +930,12 @@ function exportCatalog(){
   setTimeout(()=> URL.revokeObjectURL(url), 1000);
   toast("Экспорт выполнен","success");
 }
-// ==== Импорт каталога из JSON ====
 function importCatalogFile(file){
   const r = new FileReader();
   r.onload = () => {
     try{
       const data = JSON.parse(r.result);
       if (data && Array.isArray(data.products)){
-        // нормализуем SVG, сохраняем
         const P = data.products.map(p => p.svg ? {...p, svg: normalizeSvgMarkup(p.svg)} : p);
         store.setCatalog(P);
       }
@@ -951,22 +948,6 @@ function importCatalogFile(file){
   };
   r.readAsText(file);
 }
-
-const ex = $("#exportCatalogBtn");
-if (ex) ex.onclick = exportCatalog;
-
-const impBtn  = $("#importCatalogBtn");
-const impFile = $("#importCatalogFile");
-if (impBtn && impFile){
-  impBtn.onclick = () => impFile.click();
-  impFile.onchange = (e)=>{
-    const f = e.target.files?.[0];
-    if (f) importCatalogFile(f);
-    e.target.value = ""; // чтобы можно было выбрать тот же файл повторно
-  };
-}
-
-
 
 /* ===== Сброс демо ===== */
 function resetDemo(){
@@ -1031,7 +1012,7 @@ function bindUI(){
   // Табы в модалке auth
   $$(".tab").forEach(t=> t.onclick = (e)=>{ e.preventDefault(); setAuthTab(t.dataset.tab); });
 
-  // ВХОД: баннер вверху модалки при ошибке
+  // Вход
   $("#doLogin")?.addEventListener("click", (e)=>{
     e.preventDefault();
     const res = login($("#loginNick").value.trim(), $("#loginPass").value);
@@ -1039,7 +1020,7 @@ function bindUI(){
     $("#authModal").close();
   });
 
-  // РЕГИСТРАЦИЯ: баннер
+  // Регистрация
   $("#doRegister")?.addEventListener("click", (e)=>{
     e.preventDefault();
     const res = register($("#regNick").value.trim(), $("#regPass").value, $("#regPass2").value);
@@ -1052,13 +1033,27 @@ function bindUI(){
 
   window.addEventListener("hashchange", route);
 
-  // закрытие dialog крестиком
+  // закрытие dialog крестиком (вспомогательные икон-кнопки внутри .modal)
   document.querySelectorAll('.modal .icon-btn').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       const dlg = e.currentTarget.closest('dialog');
       if (dlg && typeof dlg.close === 'function') dlg.close();
     });
   });
+
+  // Экспорт/импорт (если есть кнопки)
+  const ex = $("#exportCatalogBtn");
+  if (ex) ex.onclick = exportCatalog;
+  const impBtn  = $("#importCatalogBtn");
+  const impFile = $("#importCatalogFile");
+  if (impBtn && impFile){
+    impBtn.onclick = () => impFile.click();
+    impFile.onchange = (e)=>{
+      const f = e.target.files?.[0];
+      if (f) importCatalogFile(f);
+      e.target.value = "";
+    };
+  }
 }
 
 /* ===== Аккаунт (auth) ===== */
@@ -1112,32 +1107,8 @@ window.addEventListener("storage", (e)=>{
   if (e.key === LS.cats){ renderCats(); renderCatSelect(); if (!$("#admin").hidden && document.querySelector(".adm-tab.active")?.dataset.tab === "cats") renderAdminCats(); }
 });
 
-/* ===== Старт ===== */
-function main(){
-  healAndInit();
-  applyTheme(getThemeForNick(currentUser()?.nick || null)); // тема пользователя/гостя
-  setWelcome(); renderCats(); renderGrid();
-  bindUI(); updateCartBadge(); route();
-
-  // подготовим стили/контейнер для модалки товара (создастся только один раз)
-  ensureProductModalStyles();
-  ensureProductModal();
-}
-document.addEventListener("DOMContentLoaded", main);
-
-function main(){
-  healAndInit();                      // локальные дефолты (на всякий случай)
-  applyTheme(getThemeForNick(currentUser()?.nick || null));
-  setWelcome(); renderCats(); renderGrid();
-  bindUI(); updateCartBadge(); route();
-
-  // ⬇️ Подтягиваем реальные данные из Firestore и заменяем локальный каталог
-  loadRemoteData().catch(err => console.error("Firestore load error:", err));
-}
-
-
-// Оборачиваем таблицы в прокручиваемый контейнер на узких экранах
-(function wrapAdminTables(){
+/* ===== Обёртка таблиц для мобильных (если есть) ===== */
+function wrapAdminTables(){
   const wrap = (el)=>{
     if (!el || el.parentElement?.classList.contains("table-wrap")) return;
     const w = document.createElement("div");
@@ -1145,7 +1116,29 @@ function main(){
     el.parentNode.insertBefore(w, el);
     w.appendChild(el);
   };
-  wrap(document.querySelector(".orders"));      // таблица заказов
-  wrap(document.getElementById("prodTable"));   // таблица каталога
-})();
+  wrap(document.querySelector(".orders"));
+  wrap(document.getElementById("prodTable"));
+}
 
+/* ===== Старт ===== */
+async function main(){
+  healAndInit(); // локальные дефолты (на случай офлайна)
+  applyTheme(getThemeForNick(currentUser()?.nick || null));
+  setWelcome();
+
+  // Подтянуть Firestore и заменить локальные данные
+  await loadRemoteData();
+
+  renderCats();
+  renderGrid();
+
+  bindUI();
+  updateCartBadge();
+  route();
+  wrapAdminTables();
+
+  // Модалка товара — подготовка
+  ensureProductModalStyles();
+  ensureProductModal();
+}
+document.addEventListener("DOMContentLoaded", main);
