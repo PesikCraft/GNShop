@@ -1,59 +1,18 @@
-// ======================= Firebase (ES Modules через CDN) =======================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
+/* ===== OFFLINE MODE (без Firebase) =====
+   Никаких импортов, никакой инициализации — работаем только с localStorage.
+   Функция loadRemoteData заглушена.
+*/
 
-const firebaseConfig = {
-  apiKey: "AIzaSyB2XmKTuCwCK3rRq-QE4190qsYH13Tw6CI",
-  authDomain: "gnshop-9c0f7.firebaseapp.com",
-  projectId: "gnshop-9c0f7",
-  storageBucket: "gnshop-9c0f7.firebasestorage.app",
-  messagingSenderId: "33739103897",
-  appId: "1:33739103897:web:df8c3ace5ca2940007a208",
-  measurementId: "G-2FE4XS2TXL"
-};
+// Раньше здесь были импорты firebase-... и конфиг.
+// Удаляем их полностью.
 
-const appFB = initializeApp(firebaseConfig);
-const db = getFirestore(appFB);
-getAnalytics(appFB);
+const CLOUD = { loaded: true };
 
-const CLOUD = { loaded:false };
-
-// Firestore → localStorage (cats / products)
-async function loadRemoteData(){
-  // 1) Категории из /cats/categories (object: {hoodie:"Худи", ...})
-  try{
-    const catSnap = await getDoc(doc(db, "cats", "categories"));
-    if (catSnap.exists()){
-      const obj  = catSnap.data() || {};
-      const cats = Object.values(obj).filter(Boolean);
-      if (cats.length) store.setCats(cats);
-    }
-  }catch(e){ console.warn("cats load error:", e); }
-
-  // 2) Товары из /products (каждый документ — товар)
-  try{
-    const q  = await getDocs(collection(db, "products"));
-    const products = q.docs.map(d => {
-      const p = d.data() || {};
-      return {
-        id:      p.id || d.id,
-        title:   p.title || "",
-        cat:     p.cat   || "",
-        price:   Number(p.price) || 0,
-        sizes:   Array.isArray(p.sizes) ? p.sizes : [],
-        colors:  Array.isArray(p.colors)? p.colors: [],
-        img:     p.img || p.image || "",
-        svg:     p.svg || ""
-      };
-    });
-    if (products.length) store.setCatalog(products);
-  }catch(e){ console.warn("products load error:", e); }
-
-  CLOUD.loaded = true;
+// Заглушка: ничего не делаем, данных «из облака» нет и не надо.
+async function loadRemoteData() {
+  // noop — всё возьмётся из DEFAULT_PRODUCTS и store.*
+  return;
 }
-
-// ============================ Локальная логика магазина =========================
 
 /* ===== Ключи хранилища ===== */
 const LS = {
