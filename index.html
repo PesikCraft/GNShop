@@ -5,17 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Майки — магазин</title>
   <link rel="stylesheet" href="styles.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
 
   <!-- Header -->
   <header class="site-header">
+<a id="logoHome" class="logo" href="#">
+  <img class="logo-img" src="img/gn-logo.jpg" alt="G&N">
 
-  <a href="#" id="logoHome" class="logo">
-  <img src="gn-logo.jpg" class="logo-img" width="32" height="32">
-  </a>
-
+</a>
 
 
 
@@ -68,8 +66,7 @@
   </footer>
 
   <!-- Cart modal -->
-  <dialog id="cart
-    al" class="modal">
+  <dialog id="cartModal" class="modal">
     <div class="modal-card wide">
       <div class="modal-head">
         <strong>Корзина</strong>
@@ -213,8 +210,6 @@
           <h3 style="display:flex;justify-content:space-between;align-items:center">
             <span>Каталог</span>
             <button id="exportCatalogBtn" class="btn btn-ghost small">Экспорт JSON</button>
-            <button id="importCatalogBtn" class="btn">Импорт</button>
-<input id="importCatalogFile" type="file" accept="application/json" hidden>
           </h3>
           <table class="orders" id="prodTable">
             <thead>
@@ -279,59 +274,11 @@
     </div>
   </dialog>
 
-
-
   <!-- Toast wrap -->
   <div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
 
-  <dialog id="productModal" class="modal">
-  <div class="modal-card wide product-card">
-    <div class="modal-head">
-      <div class="p-title"></div>
-      <button class="icon-btn" aria-label="Закрыть" id="pClose">✖</button>
-    </div>
+  <!-- в самом низу index.html -->
+<script src="app.js"></script>
 
-    <div class="modal-body product-body">
-      <div class="p-left">
-        <div class="p-img"></div>
-      </div>
-
-      <div class="p-right">
-        <div class="p-meta">
-          <div class="p-price"></div>
-        </div>
-
-        <div class="p-opts">
-          <div class="opt-row" id="rowSizes" hidden>
-            <div class="opt-label">Размер</div>
-            <div class="chip-group" id="pSizes"></div>
-          </div>
-
-          <div class="opt-row" id="rowColors" hidden>
-            <div class="opt-label">Цвет</div>
-            <div class="chip-group" id="pColors"></div>
-          </div>
-
-          <div class="opt-row">
-            <div class="opt-label">Кол-во</div>
-            <div class="qty-ctrl">
-              <button class="qty-dec" type="button" aria-label="Меньше">−</button>
-              <input id="pQty" type="number" min="1" value="1">
-              <button class="qty-inc" type="button" aria-label="Больше">+</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-actions">
-          <button class="btn primary" id="pAdd">Добавить в корзину</button>
-        
-        </div>
-      </div>
-    </div>
-  </div>
-</dialog>
-
-
-  <script src="app.js"></script>
 </body>
 </html>
